@@ -10,8 +10,8 @@ from copy import deepcopy
 
 credentials = GIGA_KEY
 
-chosen_case = deepcopy(investments)
-chosen_victim = 0
+chosen_case = deepcopy(secure_account)
+chosen_victim = 1
 
 scammer = chosen_case.profiles["scammer"]
 analyst = chosen_case.profiles["analyst"]
@@ -120,12 +120,12 @@ def decide_to_stop(state: DialogState):
 builder = StateGraph(DialogState)
 
 builder.add_node("Скам Скамыч", ask_scammer)
-builder.add_node("Иван Иваныч", ask_victim)
+builder.add_node(victim["name"], ask_victim)
 builder.add_node("analyst", ask_analyst)
 
 builder.add_edge(START, "Скам Скамыч")
-builder.add_edge("Скам Скамыч", "Иван Иваныч")
-builder.add_edge("Иван Иваныч", "analyst")
+builder.add_edge("Скам Скамыч", victim["name"])
+builder.add_edge(victim["name"], "analyst")
 
 builder.add_conditional_edges(
     "analyst",
