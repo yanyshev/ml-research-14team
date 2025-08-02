@@ -106,19 +106,23 @@ def generate_response(fraud_scheme, max_count, case_name, victim_index):
                     st.subheader("💬 Диалог")
                     for role, message, count in st.session_state.dialogue_history:
                         with st.chat_message("assistant" if role == "scammer" else "user",
-                                             avatar="🦹‍♂️" if role == "scammer" else "😇"):
+                                             avatar="🦹‍♂️" if role == "scammer" else "👴"):
                             st.markdown(message)
                             st.caption(f"Сообщение #{count}")
 
-            # ✅ CRITICAL CHANGE: Use victim["name"] instead of hardcoded "Иван Иваныч"
+            # Use dynamic victim name
             if victim_name in update:
                 msg = update[victim_name]["messages"][0]
                 st.session_state.dialogue_history.append(("victim", msg, update[victim_name]["message_count"]))
                 with dialogue_container.container():
                     st.subheader("💬 Диалог")
                     for role, message, count in st.session_state.dialogue_history:
+                        # Use appropriate avatar based on current victim
+                        victim = victims[victim_index]
+                        avatar = "👵" if "женщина" in victim["bio"].lower() else "👴"
+
                         with st.chat_message("assistant" if role == "scammer" else "user",
-                                             avatar="🦹‍♂️" if role == "scammer" else "😇"):
+                                             avatar="🦹‍♂️" if role == "scammer" else avatar):
                             st.markdown(message)
                             st.caption(f"Сообщение #{count}")
 
@@ -154,10 +158,13 @@ def generate_response(fraud_scheme, max_count, case_name, victim_index):
 def main():
     st.title("🕵️‍♂️ Симулятор мошеннических схем")
     st.markdown("Анализ взаимодействия между мошенником и жертвой в реальном времени")
+
     # Initialize session state
     initialize_session_state()
+
     with st.sidebar:
         st.header("⚙️ Настройки симуляции")
+
         # Fraud case selection
         st.subheader("Выберите схему мошенничества")
         case_options = {case.name: name for name, case in fraud_cases.items()}
@@ -167,6 +174,7 @@ def main():
             index=0
         )
         selected_case_key = case_options[selected_case_name]
+
         st.subheader("Выберите жертву")
         victim_options = {f"{v['name']} ({v['bio']})": idx for idx, v in victims.items()}
         selected_victim_name = st.selectbox(
@@ -175,17 +183,30 @@ def main():
             index=st.session_state.current_victim
         )
         selected_victim_idx = victim_options[selected_victim_name]
+
+        # Добавляем заглушку для выбора образовательных материалов
+        st.subheader("Образовательные материалы")
+        education_options = ["Ничего", "Статья Финкульта про мошенничество"]
+        st.selectbox(
+            "Выберите материал",
+            options=education_options,
+            index=0
+        )
+
         st.subheader("Параметры симуляции")
         max_messages = st.slider("Максимальное количество сообщений", 5, 50, 10)
         st.markdown("---")
+
         col1, col2 = st.columns(2)
         with col1:
             start_btn = st.button("Запустить", type="primary", use_container_width=True)
         with col2:
             reset_btn = st.button("Сбросить", use_container_width=True)
+
         if reset_btn:
             clear_history()
             st.rerun()
+
         st.markdown("---")
         st.subheader("Статус")
         if st.session_state.simulation_running:
@@ -201,22 +222,31 @@ def main():
                     st.warning("Ожидание анализа...")
             else:
                 st.info("Готов к запуску симуляции")
+
     col1, col2 = st.columns([2, 1])
+
     with col1:
         st.subheader("💬 Диалог между мошенником и жертвой")
         dialogue_container = st.empty()
+
         with dialogue_container.container():
             if st.session_state.dialogue_history:
                 for role, message, count in st.session_state.dialogue_history:
+                    # Use appropriate avatar based on current victim
+                    victim = victims[st.session_state.current_victim]
+                    avatar = "👵" if "женщина" in victim["bio"].lower() else "👴"
+
                     with st.chat_message("assistant" if role == "scammer" else "user",
-                                         avatar="🦹‍♂️" if role == "scammer" else "😇"):
+                                         avatar="🦹‍♂️" if role == "scammer" else avatar):
                         st.markdown(message)
                         st.caption(f"Сообщение #{count}")
             else:
                 st.info("Диалог будет отображен здесь после запуска симуляции")
+
     with col2:
         st.subheader("🕵️‍♂️ Анализ мошеннической активности")
         analyst_container = st.empty()
+
         with analyst_container.container():
             if st.session_state.analyst_history:
                 for idx, (analysis, is_scammed, count) in enumerate(st.session_state.analyst_history):
@@ -235,6 +265,7 @@ def main():
                             st.info("Диалог продолжается...", icon="🔄")
             else:
                 st.info("Анализ будет отображен здесь после запуска симуляции")
+
     if start_btn and not st.session_state.simulation_running:
         with st.spinner("Запуск симуляции..."):
             generate_response(
